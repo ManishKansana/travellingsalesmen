@@ -123,12 +123,10 @@ const Map = () => {
   }, []);
 
   return (
-    <div>
-      <div className="sidebar z-30 absolute top-0 left-0 p-4">
-        <Sidebar sendLocation={handlelocationData}/>
-      </div>
-      <div ref={mapContainer} className="map-container  absolute top-0 left-0 right-0 bottom-0 z-20" />
-    </div>
+    <>
+      <Sidebar sendLocation={handlelocationData}/>
+      <div ref={mapContainer} className="map-container  absolute top-0 left-0 right-0 bottom-0" />
+    </>
   );
 }
 

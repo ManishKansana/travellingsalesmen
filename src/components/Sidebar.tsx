@@ -55,40 +55,52 @@ const Sidebar = ({ sendLocation , updateLocation }) => {
     };
 
     return (
-        <div className="absolute">
+        <div className="absolute top-5 left-5 rounded-xl z-10 container w-72 bg-gray-300 shadow-sm flex flex-col items-center grid justify-center">
             <input
                 type="text"
-                className="p-2 pl-8 rounded-3xl border border-gray-200 bg-gray-200 focus:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:border-transparent "
+                className="rounded-t-xl w-72 pt-2 pl-12 border bg-gray-300 focus:bg-gray-300 focus:outline-none border-transparent"
                 placeholder="search..."
                 value={searchInput}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
             />
-            <svg className="w-4 h-4 absolute left-2.5 top-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path />
-            </svg>
+            <svg className="pl-4 w-10 h-8 absolute left-0 top-1.5 right-1.5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 15l5 5M10 14a4 4 0 100-8 4 4 0 000 8z" />
+</svg>
+
+
+            <div className='bg-gray-300 border-t-0 rounded-b-3xl w-72 h-2'></div>
 
             
-
             {suggestions.length > 0 && searchInput && (
-                <ul className="bg-white border border-gray-100 w-full mt-2 rounded-2xl">
+                <>
+                <ul className=" space-y-0.5 asbolute bg-white border border-gray-300 w-full mt-0 rounded-2xl ">
                     {suggestions.map((suggestion, index) => (
                         <li key={index} className="mt-2 mb-2 py-1 border-b-0 relative cursor-pointer hover:bg-gray-50 hover:text-gray-900 hover:rounded-xl" onClick={() => handleSuggestionClick(suggestion)}>
                             <p className="text-left pl-4 pt-2 pb-1 text-sm text-gray-900 font-medium">{suggestion.properties.name}</p>
                             <p className="text-left pl-4 pb-2 text-sm text-gray-500">{suggestion.properties.place_formatted}</p>
                         </li>
                     ))}
-                </ul>
+                </ul>{selectedLocations.length > 0 &&(
+                    <p className="text-left pl-4 pt-2 pb-1 text-sm text-gray-900 font-medium roundedt-t-xl">selected</p>
+                )}
+                </>
+                
             )}
+
             {selectedLocations.length > 0 && (
-                <ul className="bg-white border border-gray-100 w-full mt-2 rounded-2xl">
+                
+                <ul className="bg-white w-full mt-0 rounded-xl">
+{/* Suggested code may be subject to a license. Learn more: ~LicenseLog:2722730320. */}
                     {selectedLocations.map((location, index) => (
-                        <li key={index} className="mt-2 mb-2 py-1 border-b-0 relative cursor-pointer hover:bg-gray-50 hover:text-gray-900 hover:rounded-xl">
-                            <p className="text-left pl-4 pt-2 pb-1 text-sm text-gray-900 font-medium">{location.properties.name}</p>
+                        <li key={index} className="mt-2 mb-2 py-1 relative cursor-pointer hover:bg-gray-50 hover:text-gray-900 rounded-xl">
+                            <p className="text-left pl-4 pt-2 pb-1 text-sm text-gray-900 font-medium roundedt-t-xl">{location.properties.name}</p>
                             {/* Adjust this line according to your data structure */}
                             <p className="text-left pl-4 pb-2 text-sm text-gray-500">{location.properties.place_formatted}</p>
-                            <button onClick={() => handleRemoveLocation(index)} className="absolute top-0 right-0 mr-4 mt-2 text-gray-500 hover:text-red-600 focus:outline-none">
-                                x
+                            <button onClick={() => handleRemoveLocation(index)} className="absolute top-0 right-0 mr-2 mt-2 w-6 h-6 flex justify-center items-center text-sm text-gray-500 hover:text-red-600 focus:outline-none border-0 bg-gray-200 rounded-md pt-0 pb-1 pr-2 pl-2">
+                            <svg className="w-4 h-4 absolute top-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
                             </button>
                         </li>
                     ))}
