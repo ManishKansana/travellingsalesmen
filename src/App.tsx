@@ -93,9 +93,9 @@ console.log("");
 function App() {
 
   return (
-    <div className="bg-black h-screen flex justify-center items-center"> {/* Change bg-black-100 to bg-black */}
+    <>
     <Map/>
-    </div>
+    </>
 
   )
 }
