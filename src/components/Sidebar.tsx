@@ -20,7 +20,7 @@ const Sidebar = ({ sendLocation , updateLocation }) => {
         if (searchInput) {
             fetchSuggestions();
         } else {
-            // Clear suggestions when search input is empty
+            // Clear suggestions when search input is empty twice
             setSuggestions([]);
         }
     }, [searchInput]);
