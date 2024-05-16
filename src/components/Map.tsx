@@ -19,11 +19,50 @@ const Map = () => {
   const markers = useRef({});
   const [Markers, setMarkers] = useState([ ])
 
+  const [distanceMatrix, setDistanceMatrix] = useState<number[][]>([]);
+
 
   useEffect(() => {
     mapboxgl.accessToken = 'pk.eyJ1IjoibWFzaGJ1cm4iLCJhIjoiY2x3MnVlcWZmMGtpeTJxbzA5ZXNmb3V0MCJ9.E-W6jVgrBjtiZL-mUJhUAw';
   }, []);
+
+  const addLocation = (newLocation) => {
+    setLocations((prevLocations) => {
+      // Check if the newLocation ID already exists in the current array
+      if (prevLocations.some(location => location.id === newLocation.id)) 
+      {
+        return prevLocations; // Return the existing array if ID is already present
+      }
+      return [...prevLocations, newLocation]; // Add newLocation if ID is unique
+    });
+  };
+
+  const removeLocation = (removedLocation) => {
+    setLocations((prevLocations) => {
+      return prevLocations.filter((location) => location.id !== removedLocation.id);
+    });
+  };
+
   
+
+  const handleFindDistances = async () => {
+    const distances = Array.from({ length: Locations.length }, () =>
+      Array.from({ length: Locations.length }, () => Infinity)
+    );
+    for (let i = 0; i < Locations.length; i++) {
+      for (let j = 0; j < Locations.length; j++) {
+        const origin = Locations[i]['geometry']['coordinates'].join(',');
+        const destination = Locations[j]['geometry']['coordinates'].join(',');
+
+        const routeData = await calcRouteDirection(origin, destination);
+        const distance = routeData.routes[0].distance;
+        distances[i][j] = distance/1000;
+        distances[j][i] = distance/1000;
+      }
+    }
+    setDistanceMatrix(distances);
+    console.log('Distance Matrix:', distances);
+  }
 
   const calcRouteDirection = async ( origin: number, destination: number) => {
     try {
@@ -34,7 +73,8 @@ const Map = () => {
       const { data } = response;
       // Handle route geometry data
       const routeGeometry = data.routes[0].geometry;
-      return routeGeometry;
+      //console.log(data);
+      return data;
     } catch (error) {
       console.error('Error calculating directions:', error);
       throw error;
@@ -45,8 +85,10 @@ const Map = () => {
   // Markers
 
   const addMarker = (Location: any) => {
-    setLocations(prevLocations => [...prevLocations, Location]); // Update Locations using state updater function
+    // Add location to Locations state
+    addLocation(Location);
   
+    // Update Locations using state updater function
     // Now, Locations has been updated and you can safely access it
     const id = Location['id'];
     const long = Location.geometry.coordinates[0];
@@ -73,8 +115,7 @@ const Map = () => {
 
   //  CALLBACK FUNCTIONS
   const handleremovelocation = (locationDetails: any) => {
-    setLocations([...Locations, locationDetails])
-    setLocations(Locations.filter(location => location.id !== locationDetails.id));
+    removeLocation(locationDetails);
     deleteMarker(locationDetails);
    };
 
@@ -98,6 +139,7 @@ const Map = () => {
   // Routes
   
   useEffect(() => {
+    console.log('Selected Location: ',Locations);
     removeRoutes(map.current, Routes); // Remove existing routes  
     if (Locations.length > 1) {
       const updateRoutesAsync = async () => {
@@ -111,7 +153,8 @@ const Map = () => {
           // Make sure origin and destination are in GeoJSON format
           try {
             const routeGeo = await calcRouteDirection(origin, destination);
-            updatedRoutes.push(routeGeo); // Push route to array if it's valid
+            const updatedRoute = routeGeo.routes[0].geometry
+            updatedRoutes.push(updatedRoute); // Push route to array if it's valid
           } catch (error) {
             console.error("Error calculating route direction:", error);
           }
@@ -122,6 +165,7 @@ const Map = () => {
       };
   
       updateRoutesAsync();
+      handleFindDistances();
     }
   }, [Locations]);
   

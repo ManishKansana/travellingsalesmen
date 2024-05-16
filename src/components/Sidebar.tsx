@@ -6,6 +6,17 @@ const Sidebar = ({ sendLocation , updateLocation, selectLocData }) => {
     const [suggestions, setSuggestions] = useState([]);
     const [selectedLocations, setSelectedLocations] = useState([]);
 
+    const addLocation = (newLocation) => {
+        setSelectedLocations((prevLocations) => {
+          // Check if the newLocation ID already exists in the current array
+          if (prevLocations.some(location => location.id === newLocation.id)) 
+          {
+            return prevLocations; // Return the existing array if ID is already present
+          }
+          return [...prevLocations, newLocation]; // Add newLocation if ID is unique
+        });
+      };
+
     useEffect(() => {
         const fetchSuggestions = async () => {
             try {
@@ -40,7 +51,8 @@ const Sidebar = ({ sendLocation , updateLocation, selectLocData }) => {
 
     const handleSuggestionClick = (suggestion: never) => {
         if (suggestion.geometry && suggestion.properties && suggestion.properties.name) {
-            setSelectedLocations([...selectedLocations, suggestion]);
+            //setSelectedLocations([...selectedLocations, suggestion]);
+            addLocation(suggestion);
             sendLocation(suggestion);
             setSearchInput('');
             setSuggestions([]);
