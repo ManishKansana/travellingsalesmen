@@ -17,12 +17,52 @@ const Map = () => {
   const [Locations, setLocations] = useState([]);
   const [Routes, setRoutes] = useState([])
   const markers = useRef({});
+  const [Markers, setMarkers] = useState([ ])
+
+  const [distanceMatrix, setDistanceMatrix] = useState<number[][]>([]);
 
 
   useEffect(() => {
     mapboxgl.accessToken = 'pk.eyJ1IjoibWFzaGJ1cm4iLCJhIjoiY2x3MnVlcWZmMGtpeTJxbzA5ZXNmb3V0MCJ9.E-W6jVgrBjtiZL-mUJhUAw';
   }, []);
+
+  const addLocation = (newLocation) => {
+    setLocations((prevLocations) => {
+      // Check if the newLocation ID already exists in the current array
+      if (prevLocations.some(location => location.id === newLocation.id)) 
+      {
+        return prevLocations; // Return the existing array if ID is already present
+      }
+      return [...prevLocations, newLocation]; // Add newLocation if ID is unique
+    });
+  };
+
+  const removeLocation = (removedLocation) => {
+    setLocations((prevLocations) => {
+      return prevLocations.filter((location) => location.id !== removedLocation.id);
+    });
+  };
+
   
+
+  const handleFindDistances = async () => {
+    const distances = Array.from({ length: Locations.length }, () =>
+      Array.from({ length: Locations.length }, () => Infinity)
+    );
+    for (let i = 0; i < Locations.length; i++) {
+      for (let j = 0; j < Locations.length; j++) {
+        const origin = Locations[i]['geometry']['coordinates'].join(',');
+        const destination = Locations[j]['geometry']['coordinates'].join(',');
+
+        const routeData = await calcRouteDirection(origin, destination);
+        const distance = routeData.routes[0].distance;
+        distances[i][j] = distance/1000;
+        distances[j][i] = distance/1000;
+      }
+    }
+    setDistanceMatrix(distances);
+    console.log('Distance Matrix:', distances);
+  }
 
   const calcRouteDirection = async ( origin: number, destination: number) => {
     try {
@@ -33,7 +73,8 @@ const Map = () => {
       const { data } = response;
       // Handle route geometry data
       const routeGeometry = data.routes[0].geometry;
-      return routeGeometry;
+      //console.log(data);
+      return data;
     } catch (error) {
       console.error('Error calculating directions:', error);
       throw error;
@@ -44,38 +85,47 @@ const Map = () => {
   // Markers
 
   const addMarker = (Location: any) => {
-    const id = Location.id;
-    const long = Location.geometry.coordinates[0]
-    const lat = Location.geometry.coordinates[1]
-    map.current!.setCenter([long, lat])
+    // Add location to Locations state
+    addLocation(Location);
+  
+    // Update Locations using state updater function
+    // Now, Locations has been updated and you can safely access it
+    const id = Location['id'];
+    const long = Location.geometry.coordinates[0];
+    const lat = Location.geometry.coordinates[1];
+    
+    map.current!.setCenter([long, lat]);
     const marker = new mapboxgl.Marker()
-        .setLngLat([long, lat])
-        .addTo(map.current!);
+      .setLngLat([long, lat])
+      .addTo(map.current!);
     markers.current[id] = marker;
-    };
+  
+    // Update markers state if needed
+    setMarkers(Object.values(markers.current));
+  };
+  
   
   const deleteMarker = (Location: any) => {
     const id = Location.id;
     const marker = markers.current[id];
     marker.remove();
     delete markers.current[id];
+    setMarkers(Object.values(markers.current));
   };
 
   //  CALLBACK FUNCTIONS
   const handleremovelocation = (locationDetails: any) => {
-    setLocations([...Locations, locationDetails])
-    setLocations(Locations.filter(location => location.id !== locationDetails.id));
+    removeLocation(locationDetails);
     deleteMarker(locationDetails);
    };
 
   const handlelocationData = async (locationDetails: any) => {
-    setLocations([...Locations, locationDetails])
     addMarker(locationDetails);
    };
 
-   const removeRoutes = (map, routes) => {
+   const removeRoutes = (map: mapboxgl.Map | null, routes: any[]) => {
     if (map && routes && routes.length > 0) {
-      routes.forEach((route, index) => {
+      routes.forEach((route: any, index: string) => {
         const routeId = 'route' + index;
         // Remove existing source and layer if they exist
         if (map.getSource(routeId)) {
@@ -85,11 +135,12 @@ const Map = () => {
       });
     }
   };
+
+  // Routes
   
   useEffect(() => {
-    removeRoutes(map.current, Routes); // Remove existing routes
-    console.log('Routes length:', Routes.length);
-  
+    console.log('Selected Location: ',Locations);
+    removeRoutes(map.current, Routes); // Remove existing routes  
     if (Locations.length > 1) {
       const updateRoutesAsync = async () => {
         let updatedRoutes = []; // Initialize an array to hold the updated routes
@@ -102,7 +153,8 @@ const Map = () => {
           // Make sure origin and destination are in GeoJSON format
           try {
             const routeGeo = await calcRouteDirection(origin, destination);
-            updatedRoutes.push(routeGeo); // Push route to array if it's valid
+            const updatedRoute = routeGeo.routes[0].geometry
+            updatedRoutes.push(updatedRoute); // Push route to array if it's valid
           } catch (error) {
             console.error("Error calculating route direction:", error);
           }
@@ -113,7 +165,7 @@ const Map = () => {
       };
   
       updateRoutesAsync();
-      console.log("Location Changed");
+      handleFindDistances();
     }
   }, [Locations]);
   
@@ -122,9 +174,9 @@ const Map = () => {
 
 // MAP ROUTES AND LAYERS
 
-const addRoute = (map, routes) => {
+const addRoute = (map: mapboxgl.Map | null, routes: any[]) => {
   if (map && routes && routes.length > 0) {
-    routes.forEach((route, index) => {
+    routes.forEach((route: any, index: string) => {
       const routeId = 'route' + index;
       // Remove existing source and layer if they exist
       if (map.getSource(routeId)) {
@@ -159,11 +211,17 @@ const addRoute = (map, routes) => {
   }
 };
 
+const fetchLocation = async (lng, lat) => {
+  try {
+      const response = await axios.get(`https://api.mapbox.com/search/geocode/v6/reverse?longitude=${lng}&latitude=${lat}&access_token=pk.eyJ1IjoibWFzaGJ1cm4iLCJhIjoiY2x3MnVlcWZmMGtpeTJxbzA5ZXNmb3V0MCJ9.E-W6jVgrBjtiZL-mUJhUAw`);
+      addMarker(response.data.features[0]);
+  } catch (error) {
+      console.error('Error fetching suggestions:', error);
+  }
+};
 
 useEffect(() => {
-
   addRoute(map.current, Routes);
-  console.log("Routes added on the map:");
 }, [map, Routes]);
 
 
@@ -186,13 +244,21 @@ useEffect(() => {
         setLat(parseFloat(map.current!.getCenter().lat.toFixed(4)));
         setZoom(parseFloat(map.current!.getZoom().toFixed(2)));
       });
+      
+
+      function add_marker (event: { lngLat: any; }) {
+        var coordinates = event.lngLat;
+        fetchLocation(coordinates.lng, coordinates.lat);
+      }
+
+      map.current.on('click', add_marker);
 
     }
   }, []);
 
   return (
     <>
-      <Sidebar sendLocation={handlelocationData} updateLocation={handleremovelocation}/>
+      <Sidebar sendLocation={handlelocationData} updateLocation={handleremovelocation} selectLocData={Locations}/>
       <div ref={mapContainer} className="map-container  absolute top-0 left-0 right-0 bottom-0" />
     </>
   );

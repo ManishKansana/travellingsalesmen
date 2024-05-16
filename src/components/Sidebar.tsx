@@ -1,10 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const Sidebar = ({ sendLocation , updateLocation }) => {
+const Sidebar = ({ sendLocation , updateLocation, selectLocData }) => {
     const [searchInput, setSearchInput] = useState('');
     const [suggestions, setSuggestions] = useState([]);
     const [selectedLocations, setSelectedLocations] = useState([]);
+
+    const addLocation = (newLocation) => {
+        setSelectedLocations((prevLocations) => {
+          // Check if the newLocation ID already exists in the current array
+          if (prevLocations.some(location => location.id === newLocation.id)) 
+          {
+            return prevLocations; // Return the existing array if ID is already present
+          }
+          return [...prevLocations, newLocation]; // Add newLocation if ID is unique
+        });
+      };
 
     useEffect(() => {
         const fetchSuggestions = async () => {
@@ -17,21 +28,31 @@ const Sidebar = ({ sendLocation , updateLocation }) => {
         };
 
         // Fetch suggestions only if there is a search input
-        if (searchInput) {
+        if (searchInput) { 
             fetchSuggestions();
         } else {
             // Clear suggestions when search input is empty twice
             setSuggestions([]);
+
+            
         }
     }, [searchInput]);
-
+    
+    useEffect(() => {
+        // Call handlelocationData whenever selectLocData changes
+        if (selectLocData) {
+            setSelectedLocations(selectLocData);
+        }
+    }, [selectLocData]); 
+    
     const handleInputChange = (event: { target: { value: React.SetStateAction<string>; }; }) => {
         setSearchInput(event.target.value);
     };
 
     const handleSuggestionClick = (suggestion: never) => {
         if (suggestion.geometry && suggestion.properties && suggestion.properties.name) {
-            setSelectedLocations([...selectedLocations, suggestion]);
+            //setSelectedLocations([...selectedLocations, suggestion]);
+            addLocation(suggestion);
             sendLocation(suggestion);
             setSearchInput('');
             setSuggestions([]);
