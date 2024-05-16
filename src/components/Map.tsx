@@ -94,6 +94,8 @@ const Map = () => {
       });
     }
   };
+
+  // Routes
   
   useEffect(() => {
     removeRoutes(map.current, Routes); // Remove existing routes  
@@ -176,10 +178,7 @@ const fetchLocation = async (lng, lat) => {
 
 useEffect(() => {
   addRoute(map.current, Routes);
-  console.log('markers:',Markers.length);
-  console.log('locations:',Locations.length);
-  
-}, [map, Routes, Markers, Locations]);
+}, [map, Routes]);
 
 
   // MAP
@@ -205,7 +204,6 @@ useEffect(() => {
 
       function add_marker (event: { lngLat: any; }) {
         var coordinates = event.lngLat;
-        console.log('Lng:', coordinates.lng, 'Lat:', coordinates.lat);
         fetchLocation(coordinates.lng, coordinates.lat);
       }
 
@@ -216,7 +214,7 @@ useEffect(() => {
 
   return (
     <>
-      <Sidebar sendLocation={handlelocationData} updateLocation={handleremovelocation}/>
+      <Sidebar sendLocation={handlelocationData} updateLocation={handleremovelocation} selectLocData={Locations}/>
       <div ref={mapContainer} className="map-container  absolute top-0 left-0 right-0 bottom-0" />
     </>
   );
