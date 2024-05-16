@@ -94,7 +94,8 @@ const Map = () => {
     const long = Location.geometry.coordinates[0];
     const lat = Location.geometry.coordinates[1];
     
-    map.current!.setCenter([long, lat]);
+    map.current!.flyTo({ center: [long, lat], zoom: 15 });
+  
     const marker = new mapboxgl.Marker()
       .setLngLat([long, lat])
       .addTo(map.current!);
