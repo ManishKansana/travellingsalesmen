@@ -31,7 +31,6 @@ const Map = () => {
       );
 
       const { data } = response;
-      console.log(data);
       // Handle route geometry data
       const routeGeometry = data.routes[0].geometry;
       return routeGeometry;
@@ -65,24 +64,61 @@ const Map = () => {
   //  CALLBACK FUNCTIONS
   const handleremovelocation = (locationDetails: any) => {
     setLocations([...Locations, locationDetails])
-    console.log('locationDetails from Child: ',locationDetails);
     setLocations(Locations.filter(location => location.id !== locationDetails.id));
     deleteMarker(locationDetails);
-    console.log('marker removed')
    };
 
   const handlelocationData = async (locationDetails: any) => {
-    if(Locations.length >= 1){
-      const origin = Locations[Locations.length - 1]['geometry']['coordinates'].join(',');
-      const destination = locationDetails['geometry']['coordinates'].join(',');
-      const routeGeo = await calcRouteDirection(origin, destination);
-      // Pushing route to array
-      setRoutes([...Routes, routeGeo]);
-
-    }
     setLocations([...Locations, locationDetails])
     addMarker(locationDetails);
    };
+
+   const removeRoutes = (map, routes) => {
+    if (map && routes && routes.length > 0) {
+      routes.forEach((route, index) => {
+        const routeId = 'route' + index;
+        // Remove existing source and layer if they exist
+        if (map.getSource(routeId)) {
+          map.removeLayer(routeId);
+          map.removeSource(routeId);
+        }
+      });
+    }
+  };
+  
+  useEffect(() => {
+    removeRoutes(map.current, Routes); // Remove existing routes
+    console.log('Routes length:', Routes.length);
+  
+    if (Locations.length > 1) {
+      const updateRoutesAsync = async () => {
+        let updatedRoutes = []; // Initialize an array to hold the updated routes
+  
+        for (let i = 0; i < Locations.length - 1; i++) {
+          // Loop until the second-to-last element
+          const origin = Locations[i]['geometry']['coordinates'].join(',');
+          const destination = Locations[i + 1]['geometry']['coordinates'].join(',');
+  
+          // Make sure origin and destination are in GeoJSON format
+          try {
+            const routeGeo = await calcRouteDirection(origin, destination);
+            updatedRoutes.push(routeGeo); // Push route to array if it's valid
+          } catch (error) {
+            console.error("Error calculating route direction:", error);
+          }
+        }
+  
+        // Set the new routes array after all routes are calculated
+        setRoutes(updatedRoutes);
+      };
+  
+      updateRoutesAsync();
+      console.log("Location Changed");
+    }
+  }, [Locations]);
+  
+  
+  
 
 // MAP ROUTES AND LAYERS
 
@@ -125,8 +161,11 @@ const addRoute = (map, routes) => {
 
 
 useEffect(() => {
+
   addRoute(map.current, Routes);
+  console.log("Routes added on the map:");
 }, [map, Routes]);
+
 
   // MAP
 
