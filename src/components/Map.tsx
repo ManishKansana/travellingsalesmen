@@ -18,11 +18,13 @@ const Map = () => {
   const [destination, setDestination] = useState("");
   const [routeGeometry, setRouteGeometry] = useState(null);
   const [Locations, setLocations] = useState([]);
+  const markers = useRef({});
+
 
   useEffect(() => {
     if (Locations.length >= 2) {
-      const originCoordinates = Locations[0]['coordinates'].join(',');
-      const destinationCoordinates = Locations[Locations.length - 1]['coordinates'].join(',');
+      const originCoordinates = Locations[0]['geometry']['coordinates'].join(',');
+      const destinationCoordinates = Locations[Locations.length - 1]['geometry']['coordinates'].join(',');
       setOrigin(originCoordinates);
       setDestination(destinationCoordinates);
     }
@@ -54,13 +56,40 @@ const Map = () => {
       }
   }, [origin, destination]);
 
+  // Markers
+
+  const addMarker = (Location: any) => {
+    const id = Location.id;
+    const long = Location.geometry.coordinates[0]
+    const lat = Location.geometry.coordinates[1]
+    map.current!.setCenter([long, lat])
+    const marker = new mapboxgl.Marker()
+        .setLngLat([long, lat])
+        .addTo(map.current!);
+    console.log("original marker",marker);
+    markers.current[id] = marker;
+    };
+  
+  const deleteMarker = (Location: any) => {
+    const id = Location.id;
+    const marker = markers.current[id];
+    marker.remove();
+    delete markers.current[id];
+  };
+
+  const handleremovelocation = (locationDetails: any) => {
+    setLocations([...Locations, locationDetails])
+    console.log('locationDetails from Child: ',locationDetails);
+    setLocations(Locations.filter(location => location.id !== locationDetails.id));
+    deleteMarker(locationDetails);
+    console.log('marker removed')
+   };
 
   const handlelocationData = (locationDetails: any) => {
     setLocations([...Locations, locationDetails])
-    const lang = locationDetails['coordinates'][0]
-    const lat = locationDetails['coordinates'][1]
-    map.current!.setCenter([lang, lat])
-    new mapboxgl.Marker().setLngLat([lang, lat]).addTo(map.current!)
+    console.log('locationDetails from Child: ',locationDetails)
+    console.log('id',locationDetails.id);
+    addMarker(locationDetails);
    };
    
    useEffect(() => {
@@ -124,7 +153,7 @@ const Map = () => {
 
   return (
     <>
-      <Sidebar sendLocation={handlelocationData}/>
+      <Sidebar sendLocation={handlelocationData} updateLocation={handleremovelocation}/>
       <div ref={mapContainer} className="map-container  absolute top-0 left-0 right-0 bottom-0" />
     </>
   );

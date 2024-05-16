@@ -25,18 +25,19 @@ const Sidebar = ({ sendLocation , updateLocation }) => {
         }
     }, [searchInput]);
 
-    const handleInputChange = (event) => {
+    const handleInputChange = (event: { target: { value: React.SetStateAction<string>; }; }) => {
         setSearchInput(event.target.value);
     };
 
-    const handleSuggestionClick = (suggestion) => {
+    const handleSuggestionClick = (suggestion: never) => {
         if (suggestion.geometry && suggestion.properties && suggestion.properties.name) {
+            console.log(suggestion);
             const locationDetails = {
                 name: suggestion.properties.name,
                 coordinates: suggestion.geometry.coordinates
             };
             setSelectedLocations([...selectedLocations, suggestion]);
-            sendLocation(locationDetails);
+            sendLocation(suggestion);
             setSearchInput('');
             setSuggestions([]);
         } else {
@@ -44,14 +45,15 @@ const Sidebar = ({ sendLocation , updateLocation }) => {
         }
     };
 
-    const handleKeyDown = (event) => {
+    const handleKeyDown = (event: { key: string; }) => {
         if (event.key === 'Enter') {
             handleSuggestionClick(suggestions[0]);
         }
     };
 
-    const handleRemoveLocation = (indexToRemove) => {
-        setSelectedLocations(prevLocations => prevLocations.filter((location, index) => index !== indexToRemove));
+    const handleRemoveLocation = (locationToRemove: never) => {
+        setSelectedLocations(prevLocations => prevLocations.filter(location => location !== locationToRemove));
+        updateLocation(locationToRemove);
     };
 
     return (
@@ -75,8 +77,8 @@ const Sidebar = ({ sendLocation , updateLocation }) => {
             {suggestions.length > 0 && searchInput && (
                 <>
                 <ul className=" space-y-0.5 asbolute bg-white border border-gray-300 w-full mt-0 rounded-2xl ">
-                    {suggestions.map((suggestion, index) => (
-                        <li key={index} className="mt-2 mb-2 py-1 border-b-0 relative cursor-pointer hover:bg-gray-50 hover:text-gray-900 hover:rounded-xl" onClick={() => handleSuggestionClick(suggestion)}>
+                    {suggestions.map((suggestion) => (
+                        <li key={suggestion.id} className="mt-2 mb-2 py-1 border-b-0 relative cursor-pointer hover:bg-gray-50 hover:text-gray-900 hover:rounded-xl" onClick={() => handleSuggestionClick(suggestion)}>
                             <p className="text-left pl-4 pt-2 pb-1 text-sm text-gray-900 font-medium">{suggestion.properties.name}</p>
                             <p className="text-left pl-4 pb-2 text-sm text-gray-500">{suggestion.properties.place_formatted}</p>
                         </li>
@@ -92,12 +94,12 @@ const Sidebar = ({ sendLocation , updateLocation }) => {
                 
                 <ul className="bg-white w-full mt-0 rounded-xl">
 {/* Suggested code may be subject to a license. Learn more: ~LicenseLog:2722730320. */}
-                    {selectedLocations.map((location, index) => (
-                        <li key={index} className="mt-2 mb-2 py-1 relative cursor-pointer hover:bg-gray-50 hover:text-gray-900 rounded-xl">
+                    {selectedLocations.map((location) => (
+                        <li key={location.id} className="mt-2 mb-2 py-1 relative cursor-pointer hover:bg-gray-50 hover:text-gray-900 rounded-xl">
                             <p className="text-left pl-4 pt-2 pb-1 text-sm text-gray-900 font-medium roundedt-t-xl">{location.properties.name}</p>
                             {/* Adjust this line according to your data structure */}
                             <p className="text-left pl-4 pb-2 text-sm text-gray-500">{location.properties.place_formatted}</p>
-                            <button onClick={() => handleRemoveLocation(index)} className="absolute top-0 right-0 mr-2 mt-2 w-6 h-6 flex justify-center items-center text-sm text-gray-500 hover:text-red-600 focus:outline-none border-0 bg-gray-200 rounded-md pt-0 pb-1 pr-2 pl-2">
+                            <button onClick={() => handleRemoveLocation(location)} className="absolute top-0 right-0 mr-2 mt-2 w-6 h-6 flex justify-center items-center text-sm text-gray-500 hover:text-red-600 focus:outline-none border-0 bg-gray-200 rounded-md pt-0 pb-1 pr-2 pl-2">
                             <svg className="w-4 h-4 absolute top-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
