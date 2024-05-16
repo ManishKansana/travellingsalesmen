@@ -17,6 +17,7 @@ const Map = () => {
   const [Locations, setLocations] = useState([]);
   const [Routes, setRoutes] = useState([])
   const markers = useRef({});
+  const [Markers, setMarkers] = useState([ ])
 
 
   useEffect(() => {
@@ -44,21 +45,30 @@ const Map = () => {
   // Markers
 
   const addMarker = (Location: any) => {
-    const id = Location.id;
-    const long = Location.geometry.coordinates[0]
-    const lat = Location.geometry.coordinates[1]
-    map.current!.setCenter([long, lat])
+    setLocations(prevLocations => [...prevLocations, Location]); // Update Locations using state updater function
+  
+    // Now, Locations has been updated and you can safely access it
+    const id = Location['id'];
+    const long = Location.geometry.coordinates[0];
+    const lat = Location.geometry.coordinates[1];
+    
+    map.current!.setCenter([long, lat]);
     const marker = new mapboxgl.Marker()
-        .setLngLat([long, lat])
-        .addTo(map.current!);
+      .setLngLat([long, lat])
+      .addTo(map.current!);
     markers.current[id] = marker;
-    };
+  
+    // Update markers state if needed
+    setMarkers(Object.values(markers.current));
+  };
+  
   
   const deleteMarker = (Location: any) => {
     const id = Location.id;
     const marker = markers.current[id];
     marker.remove();
     delete markers.current[id];
+    setMarkers(Object.values(markers.current));
   };
 
   //  CALLBACK FUNCTIONS
@@ -69,13 +79,12 @@ const Map = () => {
    };
 
   const handlelocationData = async (locationDetails: any) => {
-    setLocations([...Locations, locationDetails])
     addMarker(locationDetails);
    };
 
-   const removeRoutes = (map, routes) => {
+   const removeRoutes = (map: mapboxgl.Map | null, routes: any[]) => {
     if (map && routes && routes.length > 0) {
-      routes.forEach((route, index) => {
+      routes.forEach((route: any, index: string) => {
         const routeId = 'route' + index;
         // Remove existing source and layer if they exist
         if (map.getSource(routeId)) {
@@ -87,9 +96,7 @@ const Map = () => {
   };
   
   useEffect(() => {
-    removeRoutes(map.current, Routes); // Remove existing routes
-    console.log('Routes length:', Routes.length);
-  
+    removeRoutes(map.current, Routes); // Remove existing routes  
     if (Locations.length > 1) {
       const updateRoutesAsync = async () => {
         let updatedRoutes = []; // Initialize an array to hold the updated routes
@@ -113,7 +120,6 @@ const Map = () => {
       };
   
       updateRoutesAsync();
-      console.log("Location Changed");
     }
   }, [Locations]);
   
@@ -122,9 +128,9 @@ const Map = () => {
 
 // MAP ROUTES AND LAYERS
 
-const addRoute = (map, routes) => {
+const addRoute = (map: mapboxgl.Map | null, routes: any[]) => {
   if (map && routes && routes.length > 0) {
-    routes.forEach((route, index) => {
+    routes.forEach((route: any, index: string) => {
       const routeId = 'route' + index;
       // Remove existing source and layer if they exist
       if (map.getSource(routeId)) {
@@ -159,12 +165,21 @@ const addRoute = (map, routes) => {
   }
 };
 
+const fetchLocation = async (lng, lat) => {
+  try {
+      const response = await axios.get(`https://api.mapbox.com/search/geocode/v6/reverse?longitude=${lng}&latitude=${lat}&access_token=pk.eyJ1IjoibWFzaGJ1cm4iLCJhIjoiY2x3MnVlcWZmMGtpeTJxbzA5ZXNmb3V0MCJ9.E-W6jVgrBjtiZL-mUJhUAw`);
+      addMarker(response.data.features[0]);
+  } catch (error) {
+      console.error('Error fetching suggestions:', error);
+  }
+};
 
 useEffect(() => {
-
   addRoute(map.current, Routes);
-  console.log("Routes added on the map:");
-}, [map, Routes]);
+  console.log('markers:',Markers.length);
+  console.log('locations:',Locations.length);
+  
+}, [map, Routes, Markers, Locations]);
 
 
   // MAP
@@ -186,6 +201,15 @@ useEffect(() => {
         setLat(parseFloat(map.current!.getCenter().lat.toFixed(4)));
         setZoom(parseFloat(map.current!.getZoom().toFixed(2)));
       });
+      
+
+      function add_marker (event: { lngLat: any; }) {
+        var coordinates = event.lngLat;
+        console.log('Lng:', coordinates.lng, 'Lat:', coordinates.lat);
+        fetchLocation(coordinates.lng, coordinates.lat);
+      }
+
+      map.current.on('click', add_marker);
 
     }
   }, []);
