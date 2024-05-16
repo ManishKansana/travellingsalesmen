@@ -31,11 +31,6 @@ const Sidebar = ({ sendLocation , updateLocation }) => {
 
     const handleSuggestionClick = (suggestion: never) => {
         if (suggestion.geometry && suggestion.properties && suggestion.properties.name) {
-            console.log(suggestion);
-            const locationDetails = {
-                name: suggestion.properties.name,
-                coordinates: suggestion.geometry.coordinates
-            };
             setSelectedLocations([...selectedLocations, suggestion]);
             sendLocation(suggestion);
             setSearchInput('');
