@@ -38,11 +38,15 @@ const Map = () => {
 
     useEffect(() => {
       if(distanceMatrix.length > 0){
-        console.log('Distance Matrix:', distanceMatrix);
         const tspresult = tsp(distanceMatrix);
-        console.log('TSP Result:', tspresult);
+        setResult(tspresult);
       }
     }, [distanceMatrix]);
+
+    useEffect(() => {
+      console.log('TSP Result:', result, result.path);
+      if(Locations.length > 0) console.log('TSP Path length:', result['path'].length);
+    }, [result]);
 
     
 
@@ -165,12 +169,13 @@ const Map = () => {
   // Routes
   
   useEffect(() => {
-    console.log('Selected Location: ',Locations);
+
     removeRoutes(map.current, Routes); // Remove existing routes  
     if (Locations.length > 1) {
       const updateRoutesAsync = async () => {
         let updatedRoutes = []; // Initialize an array to hold the updated routes
   
+        /*
         for (let i = 0; i < Locations.length - 1; i++) {
           // Loop until the second-to-last element
           const origin = Locations[i]['geometry']['coordinates'].join(',');
@@ -185,18 +190,46 @@ const Map = () => {
             console.error("Error calculating route direction:", error);
           }
         }
-  
+        */
+       for (let i = 0; i < Locations.length - 1; i++) {
+            // Loop until the second-to-last element
+            if(result['path']){
+              const origin = Locations[result['path'][i]]['geometry']['coordinates'].join(',');
+              const destination = Locations[result['path'][i + 1]]['geometry']['coordinates'].join(',');  
+              // Make sure origin and destination are in GeoJSON format
+            try {
+              const routeGeo = await calcRouteDirection(origin, destination);
+              const updatedRoute = routeGeo.routes[0].geometry
+              updatedRoutes.push(updatedRoute); // Push route to array if it's valid
+            } catch (error) {
+              console.error("Error calculating route direction:", error);
+            }
+          }
+          
+          
+          
+          
+
+       }
+
         // Set the new routes array after all routes are calculated
         setRoutes(updatedRoutes);
       };
   
       updateRoutesAsync();
+    }
+  }, [Locations, result]);
+  
+  useEffect(() => {
+    console.log('Selected Location: ',Locations.length);
+    if(Locations.length > 1){
       handleFindDistances();
     }
+    
   }, [Locations]);
+
   
-  
-  
+
 
 // MAP ROUTES AND LAYERS
 
@@ -248,6 +281,7 @@ const fetchLocation = async (lng: any, lat: any) => {
 
 useEffect(() => {
   addRoute(map.current, Routes);
+  console.log('Routes:', Routes);
 }, [map, Routes]);
 
 
