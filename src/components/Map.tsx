@@ -3,6 +3,7 @@ import mapboxgl from 'mapbox-gl';
 import '../../globals.css'
 import Sidebar from './Sidebar';
 import axios from 'axios';
+import { tsp } from '../utils/tsp'
 
 
 const Map = () => {
@@ -18,8 +19,33 @@ const Map = () => {
   const [Routes, setRoutes] = useState([])
   const markers = useRef({});
   const [Markers, setMarkers] = useState([ ])
+  const [result, setResult] = useState([]);
 
   const [distanceMatrix, setDistanceMatrix] = useState<number[][]>([]);
+  
+
+  
+  //console.log('TSP Result:', tspresult);
+
+  const graph = [   
+    [0, 132.443, 325.078688, 85.06631200000001, 298.955125],
+    [132.443, 0, 459.344, 219.331641, 205.360125],
+    [325.078688, 459.344, 0, 243.379922, 613.844],
+    [85.06631200000001, 219.331641, 243.379922, 0, 373.453719],
+    [298.955125, 205.360125, 613.844, 373.453719, 0]
+    ];
+
+
+    useEffect(() => {
+      if(distanceMatrix.length > 0){
+        console.log('Distance Matrix:', distanceMatrix);
+        const tspresult = tsp(distanceMatrix);
+        console.log('TSP Result:', tspresult);
+      }
+    }, [distanceMatrix]);
+
+    
+
 
 
   useEffect(() => {
@@ -61,7 +87,6 @@ const Map = () => {
       }
     }
     setDistanceMatrix(distances);
-    console.log('Distance Matrix:', distances);
   }
 
   const calcRouteDirection = async ( origin: number, destination: number) => {
@@ -94,7 +119,7 @@ const Map = () => {
     const long = Location.geometry.coordinates[0];
     const lat = Location.geometry.coordinates[1];
     
-    map.current!.flyTo({ center: [long, lat], zoom: 15 });
+    map.current!.flyTo({ center: [long, lat], zoom: 13 });
   
     const marker = new mapboxgl.Marker()
       .setLngLat([long, lat])
@@ -203,16 +228,16 @@ const addRoute = (map: mapboxgl.Map | null, routes: any[]) => {
           'line-cap': 'round',
         },
         paint: {
-          'line-color': '#3887be',
+          'line-color': '#ec7a1c',
           'line-width': 5,
-          'line-opacity': 0.75,
+          'line-opacity': 1,
         },
       });
     });
   }
 };
 
-const fetchLocation = async (lng, lat) => {
+const fetchLocation = async (lng: any, lat: any) => {
   try {
       const response = await axios.get(`https://api.mapbox.com/search/geocode/v6/reverse?longitude=${lng}&latitude=${lat}&access_token=pk.eyJ1IjoibWFzaGJ1cm4iLCJhIjoiY2x3MnVlcWZmMGtpeTJxbzA5ZXNmb3V0MCJ9.E-W6jVgrBjtiZL-mUJhUAw`);
       addMarker(response.data.features[0]);
