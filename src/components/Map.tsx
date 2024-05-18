@@ -295,7 +295,7 @@ const addRoute = (map, routes) => {
 
 
 const getSmoothRoute = (coordinates) => {
-  // Simplify the coordinates
+  
   const points = coordinates.map(([x, y]) => ({ x, y }));
 
   // Simplify the coordinates with a tolerance of 0.0001
