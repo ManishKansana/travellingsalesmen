@@ -29,7 +29,6 @@ const Map = () => {
   
 
   
-  //console.log('TSP Result:', tspresult);
 
   const graph = [   
     [0, 132.443, 325.078688, 85.06631200000001, 298.955125],
@@ -47,10 +46,6 @@ const Map = () => {
       }
     }, [distanceMatrix]);
 
-    useEffect(() => {
-      console.log('TSP Result:', result, result.path);
-      if(Locations.length > 0) console.log('TSP Path length:', result['path'].length);
-    }, [result]);
 
     
 
@@ -106,7 +101,6 @@ const Map = () => {
       const { data } = response;
       // Handle route geometry data
       const routeGeometry = data.routes[0].geometry;
-      //console.log(data);
       return data;
     } catch (error) {
       console.error('Error calculating directions:', error);
@@ -225,7 +219,6 @@ const Map = () => {
   }, [Locations, result]);
   
   useEffect(() => {
-    console.log('Selected Location: ',Locations.length);
     if(Locations.length > 1){
       handleFindDistances();
     }
@@ -237,24 +230,36 @@ const Map = () => {
 
 // MAP ROUTES AND LAYERS
 
-const addRoute = (map: mapboxgl.Map | null, routes: any[]) => {
+
+const addRoute = (map, routes) => {
+
   if (map && routes && routes.length > 0) {
-    routes.forEach((route: any, index: string) => {
+    routes.forEach((route, index) => {
       const routeId = 'route' + index;
       const smoothRoute = getSmoothRoute(route.coordinates);
+
       // Remove existing source and layer if they exist
       if (map.getSource(routeId)) {
         map.removeLayer(routeId);
         map.removeSource(routeId);
       }
 
-      // Add new source and layer
+      // Create initial GeoJSON data with the first coordinate
+      const initialData = {
+        type: 'FeatureCollection',
+        features: [{
+          type: 'Feature',
+          geometry: {
+            type: 'LineString',
+            coordinates: [smoothRoute.coordinates[0]] // Start with the first coordinate
+          }
+        }]
+      };
+
+      // Add new source and layer with the initial data
       map.addSource(routeId, {
         type: 'geojson',
-        data: {
-          type: 'Feature',
-          geometry: smoothRoute,
-        },
+        data: initialData
       });
 
       map.addLayer({
@@ -271,13 +276,42 @@ const addRoute = (map: mapboxgl.Map | null, routes: any[]) => {
           'line-opacity': 1,
         },
       });
+
+      const coordinates = smoothRoute.coordinates;
+      map.setPitch(30);
+
+      let i = 1; // Start from the second coordinate since the first is already added
+      const timer = setInterval(() => {
+        if (i < coordinates.length) {
+          // Get the current GeoJSON data from the source
+          const currentSource = map.getSource(routeId);
+          const data = initialData;
+          // Push the new coordinate to the GeoJSON data
+          data.features[0].geometry.coordinates.push(coordinates[i]);
+          
+          // Update the source with the new data
+          currentSource.setData(data);
+          i++;
+        } else {
+          window.clearInterval(timer);
+        }
+      }, 5);
     });
   }
 };
 
+
+
+
 const getSmoothRoute = (coordinates) => {
   // Simplify the coordinates
-  //const simplifiedCoordinates = simplify(coordinates.map(([x, y]) => ({ x, y })), 0.00001, true);
+  const points = coordinates.map(([x, y]) => ({ x, y }));
+
+  // Simplify the coordinates with a tolerance of 0.0001
+  const simplifiedPoints = simplify(points, 0.0001, true);
+
+  // Convert back to the array format required by the output
+  const simplifiedCoordinates = simplifiedPoints.map(({ x, y }) => [x, y]);
     
   // Convert back to the array format required by Bezier
   //const bezier = new Bezier(simplifiedCoordinates.map(({ x, y }) => ({ x, y })));
@@ -285,7 +319,7 @@ const getSmoothRoute = (coordinates) => {
 
   return {
     type: 'LineString',
-    coordinates: coordinates,
+    coordinates: simplifiedCoordinates,
   };
 };
 
@@ -300,7 +334,6 @@ const fetchLocation = async (lng: any, lat: any) => {
 
 useEffect(() => {
   addRoute(map.current, Routes);
-  console.log('Routes:', Routes);
 }, [map, Routes]);
 
 
