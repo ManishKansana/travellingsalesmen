@@ -24,19 +24,10 @@ const Map = () => {
   const markers = useRef({});
   const [Markers, setMarkers] = useState([ ])
   const [result, setResult] = useState([]);
+  const [Loading, setLoading] = useState(true);
 
   const [distanceMatrix, setDistanceMatrix] = useState<number[][]>([]);
   
-
-  
-
-  const graph = [   
-    [0, 132.443, 325.078688, 85.06631200000001, 298.955125],
-    [132.443, 0, 459.344, 219.331641, 205.360125],
-    [325.078688, 459.344, 0, 243.379922, 613.844],
-    [85.06631200000001, 219.331641, 243.379922, 0, 373.453719],
-    [298.955125, 205.360125, 613.844, 373.453719, 0]
-    ];
 
 
     useEffect(() => {
@@ -94,10 +85,11 @@ const Map = () => {
 
   const calcRouteDirection = async ( origin: number, destination: number) => {
     try {
+      setLoading(true);
       const response = await axios.get(
         `https://api.mapbox.com/directions/v5/mapbox/driving/${origin};${destination}?alternatives=true&geometries=geojson&language=en&overview=full&steps=true&access_token=pk.eyJ1IjoibWFzaGJ1cm4iLCJhIjoiY2x3MnVlcWZmMGtpeTJxbzA5ZXNmb3V0MCJ9.E-W6jVgrBjtiZL-mUJhUAw`
       );
-
+      setLoading(false);
       const { data } = response;
       // Handle route geometry data
       const routeGeometry = data.routes[0].geometry;
@@ -333,8 +325,11 @@ const fetchLocation = async (lng: any, lat: any) => {
 };
 
 useEffect(() => {
+
   addRoute(map.current, Routes);
-}, [map, Routes]);
+
+
+}, [Routes]);
 
 
   // MAP
@@ -364,14 +359,21 @@ useEffect(() => {
       }
 
       map.current.on('click', add_marker);
-
     }
   }, []);
 
   return (
     <>
+      
+
+      {Loading && (
+        <div className=" absolute rounded-xl z-10 bottom-0 right-200 w-200 bg-gray-300 shadow-sm ">
+        <span className="visually-hidden">Loading...</span>
+        </div>
+      )}
       <Sidebar sendLocation={handlelocationData} updateLocation={handleremovelocation} selectLocData={Locations}/>
-      <div ref={mapContainer} className="map-container  absolute top-0 left-0 right-0 bottom-0" />
+      {/* Loading overlay */}
+      <div ref={mapContainer} className="map-container  absolute top-0 left-0 right-0 bottom-0 z-5" />
     </>
   );
 }

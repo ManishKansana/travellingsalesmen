@@ -88,6 +88,7 @@ const Sidebar = ({ sendLocation , updateLocation, selectLocData }) => {
 
 
             <div className='bg-gray-300 border-t-0 rounded-b-3xl w-72 h-2'></div>
+            
 
             
             {suggestions.length > 0 && searchInput && (
