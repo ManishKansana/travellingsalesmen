@@ -5,6 +5,10 @@ import Sidebar from './Sidebar';
 import axios from 'axios';
 import { tsp } from '../utils/tsp'
 
+import { Bezier } from 'bezier-js';
+import simplify from 'simplify-js';
+
+
 
 const Map = () => {
 
@@ -125,7 +129,7 @@ const Map = () => {
     
     map.current!.flyTo({ center: [long, lat], zoom: 13 });
   
-    const marker = new mapboxgl.Marker()
+    const marker = new mapboxgl.Marker({color: '#E0E0E0'})
       .setLngLat([long, lat])
       .addTo(map.current!);
     markers.current[id] = marker;
@@ -237,6 +241,7 @@ const addRoute = (map: mapboxgl.Map | null, routes: any[]) => {
   if (map && routes && routes.length > 0) {
     routes.forEach((route: any, index: string) => {
       const routeId = 'route' + index;
+      const smoothRoute = getSmoothRoute(route.coordinates);
       // Remove existing source and layer if they exist
       if (map.getSource(routeId)) {
         map.removeLayer(routeId);
@@ -248,7 +253,7 @@ const addRoute = (map: mapboxgl.Map | null, routes: any[]) => {
         type: 'geojson',
         data: {
           type: 'Feature',
-          geometry: route,
+          geometry: smoothRoute,
         },
       });
 
@@ -268,6 +273,20 @@ const addRoute = (map: mapboxgl.Map | null, routes: any[]) => {
       });
     });
   }
+};
+
+const getSmoothRoute = (coordinates) => {
+  // Simplify the coordinates
+  //const simplifiedCoordinates = simplify(coordinates.map(([x, y]) => ({ x, y })), 0.00001, true);
+    
+  // Convert back to the array format required by Bezier
+  //const bezier = new Bezier(simplifiedCoordinates.map(({ x, y }) => ({ x, y })));
+  //const points = bezier.getLUT(10).map(p => [p.x, p.y]);
+
+  return {
+    type: 'LineString',
+    coordinates: coordinates,
+  };
 };
 
 const fetchLocation = async (lng: any, lat: any) => {
