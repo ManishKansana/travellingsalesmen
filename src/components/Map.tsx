@@ -106,8 +106,7 @@ const Map = () => {
   const addMarker = (Location: any) => {
     // Add location to Locations state
     addLocation(Location);
-  
-    // Update Locations using state updater function
+
     // Now, Locations has been updated and you can safely access it
     const id = Location['id'];
     const long = Location.geometry.coordinates[0];
