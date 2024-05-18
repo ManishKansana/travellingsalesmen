@@ -3,6 +3,11 @@ import mapboxgl from 'mapbox-gl';
 import '../../globals.css'
 import Sidebar from './Sidebar';
 import axios from 'axios';
+import { tsp } from '../utils/tsp'
+
+import { Bezier } from 'bezier-js';
+import simplify from 'simplify-js';
+
 
 
 const Map = () => {
@@ -18,8 +23,37 @@ const Map = () => {
   const [Routes, setRoutes] = useState([])
   const markers = useRef({});
   const [Markers, setMarkers] = useState([ ])
+  const [result, setResult] = useState([]);
 
   const [distanceMatrix, setDistanceMatrix] = useState<number[][]>([]);
+  
+
+  
+  //console.log('TSP Result:', tspresult);
+
+  const graph = [   
+    [0, 132.443, 325.078688, 85.06631200000001, 298.955125],
+    [132.443, 0, 459.344, 219.331641, 205.360125],
+    [325.078688, 459.344, 0, 243.379922, 613.844],
+    [85.06631200000001, 219.331641, 243.379922, 0, 373.453719],
+    [298.955125, 205.360125, 613.844, 373.453719, 0]
+    ];
+
+
+    useEffect(() => {
+      if(distanceMatrix.length > 0){
+        const tspresult = tsp(distanceMatrix);
+        setResult(tspresult);
+      }
+    }, [distanceMatrix]);
+
+    useEffect(() => {
+      console.log('TSP Result:', result, result.path);
+      if(Locations.length > 0) console.log('TSP Path length:', result['path'].length);
+    }, [result]);
+
+    
+
 
 
   useEffect(() => {
@@ -61,7 +95,6 @@ const Map = () => {
       }
     }
     setDistanceMatrix(distances);
-    console.log('Distance Matrix:', distances);
   }
 
   const calcRouteDirection = async ( origin: number, destination: number) => {
@@ -94,9 +127,9 @@ const Map = () => {
     const long = Location.geometry.coordinates[0];
     const lat = Location.geometry.coordinates[1];
     
-    map.current!.flyTo({ center: [long, lat], zoom: 15 });
+    map.current!.flyTo({ center: [long, lat], zoom: 13 });
   
-    const marker = new mapboxgl.Marker()
+    const marker = new mapboxgl.Marker({color: '#E0E0E0'})
       .setLngLat([long, lat])
       .addTo(map.current!);
     markers.current[id] = marker;
@@ -140,12 +173,13 @@ const Map = () => {
   // Routes
   
   useEffect(() => {
-    console.log('Selected Location: ',Locations);
+
     removeRoutes(map.current, Routes); // Remove existing routes  
     if (Locations.length > 1) {
       const updateRoutesAsync = async () => {
         let updatedRoutes = []; // Initialize an array to hold the updated routes
   
+        /*
         for (let i = 0; i < Locations.length - 1; i++) {
           // Loop until the second-to-last element
           const origin = Locations[i]['geometry']['coordinates'].join(',');
@@ -160,18 +194,46 @@ const Map = () => {
             console.error("Error calculating route direction:", error);
           }
         }
-  
+        */
+       for (let i = 0; i < Locations.length - 1; i++) {
+            // Loop until the second-to-last element
+            if(result['path']){
+              const origin = Locations[result['path'][i]]['geometry']['coordinates'].join(',');
+              const destination = Locations[result['path'][i + 1]]['geometry']['coordinates'].join(',');  
+              // Make sure origin and destination are in GeoJSON format
+            try {
+              const routeGeo = await calcRouteDirection(origin, destination);
+              const updatedRoute = routeGeo.routes[0].geometry
+              updatedRoutes.push(updatedRoute); // Push route to array if it's valid
+            } catch (error) {
+              console.error("Error calculating route direction:", error);
+            }
+          }
+          
+          
+          
+          
+
+       }
+
         // Set the new routes array after all routes are calculated
         setRoutes(updatedRoutes);
       };
   
       updateRoutesAsync();
+    }
+  }, [Locations, result]);
+  
+  useEffect(() => {
+    console.log('Selected Location: ',Locations.length);
+    if(Locations.length > 1){
       handleFindDistances();
     }
+    
   }, [Locations]);
+
   
-  
-  
+
 
 // MAP ROUTES AND LAYERS
 
@@ -179,6 +241,7 @@ const addRoute = (map: mapboxgl.Map | null, routes: any[]) => {
   if (map && routes && routes.length > 0) {
     routes.forEach((route: any, index: string) => {
       const routeId = 'route' + index;
+      const smoothRoute = getSmoothRoute(route.coordinates);
       // Remove existing source and layer if they exist
       if (map.getSource(routeId)) {
         map.removeLayer(routeId);
@@ -190,7 +253,7 @@ const addRoute = (map: mapboxgl.Map | null, routes: any[]) => {
         type: 'geojson',
         data: {
           type: 'Feature',
-          geometry: route,
+          geometry: smoothRoute,
         },
       });
 
@@ -203,16 +266,30 @@ const addRoute = (map: mapboxgl.Map | null, routes: any[]) => {
           'line-cap': 'round',
         },
         paint: {
-          'line-color': '#3887be',
+          'line-color': '#ec7a1c',
           'line-width': 5,
-          'line-opacity': 0.75,
+          'line-opacity': 1,
         },
       });
     });
   }
 };
 
-const fetchLocation = async (lng, lat) => {
+const getSmoothRoute = (coordinates) => {
+  // Simplify the coordinates
+  //const simplifiedCoordinates = simplify(coordinates.map(([x, y]) => ({ x, y })), 0.00001, true);
+    
+  // Convert back to the array format required by Bezier
+  //const bezier = new Bezier(simplifiedCoordinates.map(({ x, y }) => ({ x, y })));
+  //const points = bezier.getLUT(10).map(p => [p.x, p.y]);
+
+  return {
+    type: 'LineString',
+    coordinates: coordinates,
+  };
+};
+
+const fetchLocation = async (lng: any, lat: any) => {
   try {
       const response = await axios.get(`https://api.mapbox.com/search/geocode/v6/reverse?longitude=${lng}&latitude=${lat}&access_token=pk.eyJ1IjoibWFzaGJ1cm4iLCJhIjoiY2x3MnVlcWZmMGtpeTJxbzA5ZXNmb3V0MCJ9.E-W6jVgrBjtiZL-mUJhUAw`);
       addMarker(response.data.features[0]);
@@ -223,6 +300,7 @@ const fetchLocation = async (lng, lat) => {
 
 useEffect(() => {
   addRoute(map.current, Routes);
+  console.log('Routes:', Routes);
 }, [map, Routes]);
 
 
