@@ -28,18 +28,6 @@ const Map = () => {
   const [distanceMatrix, setDistanceMatrix] = useState<number[][]>([]);
   
 
-  
-  //console.log('TSP Result:', tspresult);
-
-  const graph = [   
-    [0, 132.443, 325.078688, 85.06631200000001, 298.955125],
-    [132.443, 0, 459.344, 219.331641, 205.360125],
-    [325.078688, 459.344, 0, 243.379922, 613.844],
-    [85.06631200000001, 219.331641, 243.379922, 0, 373.453719],
-    [298.955125, 205.360125, 613.844, 373.453719, 0]
-    ];
-
-
     useEffect(() => {
       if(distanceMatrix.length > 0){
         const tspresult = tsp(distanceMatrix);
@@ -47,14 +35,7 @@ const Map = () => {
       }
     }, [distanceMatrix]);
 
-    useEffect(() => {
-      console.log('TSP Result:', result, result.path);
-      if(Locations.length > 0) console.log('TSP Path length:', result['path'].length);
-    }, [result]);
-
     
-
-
 
   useEffect(() => {
     mapboxgl.accessToken = 'pk.eyJ1IjoibWFzaGJ1cm4iLCJhIjoiY2x3MnVlcWZmMGtpeTJxbzA5ZXNmb3V0MCJ9.E-W6jVgrBjtiZL-mUJhUAw';
@@ -289,6 +270,8 @@ const getSmoothRoute = (coordinates) => {
   };
 };
 
+// MAP LOCATIONS
+
 const fetchLocation = async (lng: any, lat: any) => {
   try {
       const response = await axios.get(`https://api.mapbox.com/search/geocode/v6/reverse?longitude=${lng}&latitude=${lat}&access_token=pk.eyJ1IjoibWFzaGJ1cm4iLCJhIjoiY2x3MnVlcWZmMGtpeTJxbzA5ZXNmb3V0MCJ9.E-W6jVgrBjtiZL-mUJhUAw`);
@@ -297,6 +280,9 @@ const fetchLocation = async (lng: any, lat: any) => {
       console.error('Error fetching suggestions:', error);
   }
 };
+
+
+// Add the routes to the map
 
 useEffect(() => {
   addRoute(map.current, Routes);
