@@ -1,12 +1,9 @@
-import React, { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, SetStateAction } from 'react';
 import mapboxgl from 'mapbox-gl';
 import '../../globals.css';
 import Sidebar from './Sidebar';
 import axios from 'axios';
 import { tsp } from '../utils/tsp';
-
-//import { Bezier } from 'bezier-js';
-//import simplify from 'simplify-js';
 
 mapboxgl.accessToken = 'pk.eyJ1IjoibWFzaGJ1cm4iLCJhIjoiY2x3MnVlcWZmMGtpeTJxbzA5ZXNmb3V0MCJ9.E-W6jVgrBjtiZL-mUJhUAw';
 
@@ -21,6 +18,8 @@ const Map: React.FC = () => {
   const markers = useRef<{ [key: string]: mapboxgl.Marker }>({});
   const [result, setResult] = useState<{ path?: number[] }>({});
   const [distanceMatrix, setDistanceMatrix] = useState<number[][]>([]);
+  const [path, setPath] = useState<any[]>([]);
+  const [duration, setDuration] = useState<number>(0);
 
   useEffect(() => {
     if (distanceMatrix.length > 0) {
@@ -95,6 +94,9 @@ const Map: React.FC = () => {
   const handleremovelocation = (locationDetails: any) => {
     removeLocation(locationDetails);
     deleteMarker(locationDetails);
+    if (locations.length < 2) {
+      setPath([]);
+    }
   };
 
   const handlelocationData = (locationDetails: any) => {
@@ -118,19 +120,33 @@ const Map: React.FC = () => {
     if (locations.length > 1) {
       const updateRoutesAsync = async () => {
         const updatedRoutes = [];
+        let updatedPath: any[] = [];
+        let time = 0;
+
         for (let i = 0; i < locations.length - 1; i++) {
           if (result.path) {
             const origin = locations[result.path[i]].geometry.coordinates.join(',');
             const destination = locations[result.path[i + 1]].geometry.coordinates.join(',');
+
+            updatedPath.push(locations[result.path[i]]);
             try {
               const routeGeo = await calcRouteDirection(origin, destination);
-              updatedRoutes.push(routeGeo.routes[0].geometry);
+              const updatedRoute = routeGeo.routes[0].geometry;
+              updatedRoutes.push(updatedRoute);
+              time += routeGeo.routes[0].duration;
             } catch (error) {
               console.error('Error calculating route direction:', error);
             }
           }
         }
+
+        if (result.path) {
+          updatedPath.push(locations[result.path[locations.length - 1]]);
+        }
+
+        setDuration(time);
         setRoutes(updatedRoutes);
+        setPath(updatedPath);
       };
       updateRoutesAsync();
     }
@@ -140,10 +156,15 @@ const Map: React.FC = () => {
     if (locations.length > 1) {
       handleFindDistances();
     }
+    if (locations.length < 2) {
+      setPath(locations);
+      setResult({});
+      setDuration(0);
+    }
   }, [locations]);
 
   const addRoute = (map: mapboxgl.Map | null, routes: any[]) => {
-    if (map && routes.length > 0) {
+    if (map && routes && routes.length > 0) {
       routes.forEach((route: any, index: number) => {
         const routeId = 'route' + index;
         const smoothRoute = getSmoothRoute(route.coordinates);
@@ -176,21 +197,18 @@ const Map: React.FC = () => {
       });
     }
   };
-  
+
   const getSmoothRoute = (coordinates: any[]) => {
     return {
-      type: 'LineString' as const, // explicitly specifying 'LineString' type
+      type: 'LineString' as const,
       coordinates: coordinates,
     };
   };
-  
-  
-
 
   const fetchLocation = async (lng: number, lat: number) => {
     try {
       const response = await axios.get(
-        `https://api.mapbox.com/search/geocode/v6/reverse?longitude=${lng}&latitude=${lat}&access_token=${mapboxgl.accessToken}`
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxgl.accessToken}`
       );
       addMarker(response.data.features[0]);
     } catch (error) {
@@ -226,7 +244,7 @@ const Map: React.FC = () => {
 
   return (
     <>
-      <Sidebar sendLocation={handlelocationData} updateLocation={handleremovelocation} selectLocData={locations} />
+      <Sidebar sendLocation={handlelocationData} updateLocation={handleremovelocation} results={result} path={path} time={duration} />
       <div ref={mapContainer} className="map-container absolute top-0 left-0 right-0 bottom-0" />
     </>
   );
