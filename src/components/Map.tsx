@@ -1,13 +1,9 @@
-import React, { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, SetStateAction } from 'react';
 import mapboxgl from 'mapbox-gl';
 import '../../globals.css'
 import Sidebar from './Sidebar';
 import axios from 'axios';
 import { tsp } from '../utils/tsp'
-
-import { Bezier } from 'bezier-js';
-import simplify from 'simplify-js';
-
 
 
 const Map = () => {
@@ -22,8 +18,10 @@ const Map = () => {
   const [Locations, setLocations] = useState([]);
   const [Routes, setRoutes] = useState([])
   const markers = useRef({});
-  const [Markers, setMarkers] = useState([ ])
+  const [Markers, setMarkers] = useState([])
   const [result, setResult] = useState([]);
+  const [path, setPath] = useState([]);
+  const [Duration, setDuration] = useState(0);
 
   const [distanceMatrix, setDistanceMatrix] = useState<number[][]>([]);
   
@@ -32,6 +30,7 @@ const Map = () => {
       if(distanceMatrix.length > 0){
         const tspresult = tsp(distanceMatrix);
         setResult(tspresult);
+        console.log(result);
       }
     }, [distanceMatrix]);
 
@@ -132,6 +131,9 @@ const Map = () => {
   const handleremovelocation = (locationDetails: any) => {
     removeLocation(locationDetails);
     deleteMarker(locationDetails);
+    if(Locations.length < 2){
+      setPath[null];
+    }
    };
 
   const handlelocationData = async (locationDetails: any) => {
@@ -159,7 +161,8 @@ const Map = () => {
     if (Locations.length > 1) {
       const updateRoutesAsync = async () => {
         let updatedRoutes = []; // Initialize an array to hold the updated routes
-  
+        let upadatedPath: SetStateAction<never[]> = [];
+        let time = 0;
         /*
         for (let i = 0; i < Locations.length - 1; i++) {
           // Loop until the second-to-last element
@@ -176,16 +179,20 @@ const Map = () => {
           }
         }
         */
-       for (let i = 0; i < Locations.length - 1; i++) {
+       for (let i = 0; i < Locations.length-1; i++) {
             // Loop until the second-to-last element
             if(result['path']){
               const origin = Locations[result['path'][i]]['geometry']['coordinates'].join(',');
               const destination = Locations[result['path'][i + 1]]['geometry']['coordinates'].join(',');  
+
+              upadatedPath.push(Locations[result['path'][i]])
               // Make sure origin and destination are in GeoJSON format
             try {
               const routeGeo = await calcRouteDirection(origin, destination);
-              const updatedRoute = routeGeo.routes[0].geometry
+              const updatedRoute = routeGeo.routes[0].geometry;
               updatedRoutes.push(updatedRoute); // Push route to array if it's valid
+              console.log('routegeo',routeGeo)
+              time += routeGeo.routes[0].duration;
             } catch (error) {
               console.error("Error calculating route direction:", error);
             }
@@ -196,9 +203,17 @@ const Map = () => {
           
 
        }
+       if(result['path'])
+          {
+            upadatedPath.push(Locations[result['path'][Locations.length - 1]])
+          }
+
+       
 
         // Set the new routes array after all routes are calculated
+        setDuration(time);
         setRoutes(updatedRoutes);
+        setPath(upadatedPath);
       };
   
       updateRoutesAsync();
@@ -206,9 +221,14 @@ const Map = () => {
   }, [Locations, result]);
   
   useEffect(() => {
-    console.log('Selected Location: ',Locations.length);
+    console.log('Selected Location: ', Locations.length);
     if(Locations.length > 1){
       handleFindDistances();
+    }
+    if(Locations.length < 2){
+      setPath(Locations);
+      setResult({});
+      setDuration(0);
     }
     
   }, [Locations]);
@@ -323,7 +343,7 @@ useEffect(() => {
 
   return (
     <>
-      <Sidebar sendLocation={handlelocationData} updateLocation={handleremovelocation} selectLocData={Locations}/>
+      <Sidebar sendLocation={handlelocationData} updateLocation={handleremovelocation} results={result} path={path} time={Duration}/>
       <div ref={mapContainer} className="map-container  absolute top-0 left-0 right-0 bottom-0" />
     </>
   );
