@@ -144,16 +144,20 @@ const Map = () => {
 
    const removeRoutes = (map: mapboxgl.Map | null, routes: any[]) => {
     if (map && routes && routes.length > 0) {
-      routes.forEach((route: any, index: string) => {
+      routes.forEach((_, index: number) => {
         const routeId = 'route' + index;
-        // Remove existing source and layer if they exist
-        if (map.getSource(routeId)) {
+        // Remove existing layer if it exists
+        if (map.getLayer(routeId)) {
           map.removeLayer(routeId);
+        }
+        // Remove existing source if it exists
+        if (map.getSource(routeId)) {
           map.removeSource(routeId);
         }
       });
     }
   };
+  
 
   // Routes
   
@@ -223,9 +227,8 @@ const Map = () => {
 
 
 const addRoute = (map, routes) => {
-
   if (map && routes && routes.length > 0) {
-    routes.forEach((route, index) => {
+    const drawRoute = (route, index) => {
       const routeId = 'route' + index;
       const smoothRoute = getSmoothRoute(route.coordinates);
 
@@ -285,9 +288,15 @@ const addRoute = (map, routes) => {
           i++;
         } else {
           window.clearInterval(timer);
+          if (index < routes.length - 1) {
+            drawRoute(routes[index + 1], index + 1); // Draw the next route
+          }
         }
       }, 5);
-    });
+    };
+
+    // Start drawing the first route
+    drawRoute(routes[0], 0);
   }
 };
 
